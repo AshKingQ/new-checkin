@@ -53,8 +53,11 @@ python app.py
 For production deployment:
 ```bash
 export FLASK_DEBUG=False
+export SECRET_KEY=your-long-random-secret-key-here
 python run.py
 ```
+
+**Important**: Set a persistent `SECRET_KEY` in production to maintain user sessions across restarts.
 
 4. Open your browser and navigate to:
 ```

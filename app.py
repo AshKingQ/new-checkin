@@ -6,10 +6,13 @@ from datetime import datetime, timedelta
 import secrets
 import string
 import functools
+import os
+import sqlite3
 from database import get_db_connection, hash_password, verify_password, init_database
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(32)
+# Use persistent secret key from environment or generate one (sessions will be lost on restart if generated)
+app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 
 # Initialize database on first run
 init_database()
@@ -18,6 +21,13 @@ def generate_checkin_code(length=6):
     """Generate a random check-in code."""
     characters = string.ascii_uppercase + string.digits
     return ''.join(secrets.choice(characters) for _ in range(length))
+
+def parse_datetime(datetime_str):
+    """Parse datetime from database (handles both ISO format and SQLite format)."""
+    try:
+        return datetime.fromisoformat(datetime_str)
+    except ValueError:
+        return datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S.%f')
 
 def login_required(role=None):
     """Decorator to check if user is logged in."""
@@ -125,9 +135,12 @@ def api_register():
         conn.commit()
         conn.close()
         return jsonify({'success': True, 'message': 'Registration successful'})
-    except Exception as e:
+    except sqlite3.IntegrityError:
         conn.close()
         return jsonify({'error': 'Username or Student ID already exists'}), 400
+    except Exception as e:
+        conn.close()
+        return jsonify({'error': 'Registration failed'}), 500
 
 @app.route('/api/logout', methods=['POST'])
 def api_logout():
@@ -250,15 +263,8 @@ def api_student_checkin():
     
     # Check if within time window
     current_time = datetime.now()
-    # Parse datetime from database (handles both ISO format and SQLite format)
-    try:
-        start_time = datetime.fromisoformat(session_data['start_time'])
-    except ValueError:
-        start_time = datetime.strptime(session_data['start_time'], '%Y-%m-%d %H:%M:%S.%f')
-    try:
-        end_time = datetime.fromisoformat(session_data['end_time'])
-    except ValueError:
-        end_time = datetime.strptime(session_data['end_time'], '%Y-%m-%d %H:%M:%S.%f')
+    start_time = parse_datetime(session_data['start_time'])
+    end_time = parse_datetime(session_data['end_time'])
     
     if current_time < start_time:
         conn.close()
