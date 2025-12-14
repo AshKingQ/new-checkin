@@ -25,7 +25,7 @@ A complete web-based student attendance system built with Python 3.8, Flask, SQL
 - **Backend:** Python 3.8+ with Flask framework
 - **Database:** SQLite (auto-initialized)
 - **Frontend:** HTML5, CSS3, Vanilla JavaScript
-- **Authentication:** Session-based with SHA-256 password hashing
+- **Authentication:** Session-based with bcrypt password hashing
 
 ## Installation
 
@@ -107,7 +107,7 @@ new-checkin/
 ### Users Table
 - `id`: Primary key
 - `username`: Unique username
-- `password`: Hashed password (SHA-256)
+- `password`: Hashed password (bcrypt)
 - `role`: 'admin' or 'student'
 - `name`: Full name
 - `student_id`: Student ID (for students only)
@@ -131,7 +131,7 @@ new-checkin/
 
 ## Security Features
 
-- Password hashing using SHA-256
+- Password hashing using bcrypt with automatic salting
 - Session-based authentication
 - Role-based access control
 - Input validation on all forms
