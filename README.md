@@ -148,6 +148,11 @@ new-checkin/
 - Input validation on all forms
 - SQL injection prevention using parameterized queries
 
+**Important for Production:**
+- Always set `FLASK_DEBUG=False` in production environments
+- Set a persistent `SECRET_KEY` environment variable
+- The Flask debugger should never be enabled in production due to potential security vulnerabilities
+
 ## API Endpoints
 
 ### Authentication
