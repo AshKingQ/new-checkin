@@ -5,7 +5,8 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import datetime, timedelta
 import secrets
 import string
-from database import get_db_connection, hash_password, init_database
+import functools
+from database import get_db_connection, hash_password, verify_password, init_database
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
@@ -21,13 +22,13 @@ def generate_checkin_code(length=6):
 def login_required(role=None):
     """Decorator to check if user is logged in."""
     def decorator(f):
+        @functools.wraps(f)
         def wrapped(*args, **kwargs):
             if 'user_id' not in session:
                 return jsonify({'error': 'Not authenticated'}), 401
             if role and session.get('role') != role:
                 return jsonify({'error': 'Unauthorized'}), 403
             return f(*args, **kwargs)
-        wrapped.__name__ = f.__name__
         return wrapped
     return decorator
 
@@ -85,12 +86,12 @@ def api_login():
     
     conn = get_db_connection()
     user = conn.execute(
-        'SELECT * FROM users WHERE username = ? AND password = ? AND role = ?',
-        (username, hash_password(password), role)
+        'SELECT * FROM users WHERE username = ? AND role = ?',
+        (username, role)
     ).fetchone()
     conn.close()
     
-    if user:
+    if user and verify_password(password, user['password']):
         session['user_id'] = user['id']
         session['username'] = user['username']
         session['role'] = user['role']
@@ -249,8 +250,15 @@ def api_student_checkin():
     
     # Check if within time window
     current_time = datetime.now()
-    start_time = datetime.fromisoformat(session_data['start_time'])
-    end_time = datetime.fromisoformat(session_data['end_time'])
+    # Parse datetime from database (handles both ISO format and SQLite format)
+    try:
+        start_time = datetime.fromisoformat(session_data['start_time'])
+    except ValueError:
+        start_time = datetime.strptime(session_data['start_time'], '%Y-%m-%d %H:%M:%S.%f')
+    try:
+        end_time = datetime.fromisoformat(session_data['end_time'])
+    except ValueError:
+        end_time = datetime.strptime(session_data['end_time'], '%Y-%m-%d %H:%M:%S.%f')
     
     if current_time < start_time:
         conn.close()

@@ -2,7 +2,7 @@
 Database initialization and management for the Student Check-in System.
 """
 import sqlite3
-import hashlib
+import bcrypt
 from datetime import datetime
 
 DATABASE_NAME = 'checkin_system.db'
@@ -14,8 +14,12 @@ def get_db_connection():
     return conn
 
 def hash_password(password):
-    """Hash a password using SHA-256."""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash a password using bcrypt."""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(password, hashed):
+    """Verify a password against its bcrypt hash."""
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
 def init_database():
     """Initialize the database with required tables and default admin account."""
