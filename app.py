@@ -1,7 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, Response
 from datetime import datetime
 import secrets
 import os
+import csv
+import io
 
 from config import Config
 from database import (
@@ -225,8 +227,8 @@ def create_task():
             flash('结束时间必须晚于开始时间', 'danger')
             return render_template('admin/create_task.html')
         
-        # Generate unique code
-        code = secrets.token_hex(4).upper()
+        # Generate unique code (8 bytes = 16 hex characters for better security)
+        code = secrets.token_hex(8).upper()
         
         task_id = create_checkin_task(title, code, start_time, end_time, session['user_id'])
         if task_id:
@@ -292,16 +294,19 @@ def export_records(task_id):
     # Create a map of user_id to checkin_time
     checkin_times = {record['user_id']: record['checkin_time'] for record in records}
     
-    # Generate CSV content
-    csv_lines = ['学号,姓名,签到状态,签到时间']
+    # Generate CSV content using csv module for proper escaping
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['学号', '姓名', '签到状态', '签到时间'])
+    
     for student in students:
         status = '已签到' if student['id'] in checked_in_ids else '未签到'
         checkin_time = checkin_times.get(student['id'], '')
-        csv_lines.append(f'{student["username"]},{student["name"]},{status},{checkin_time}')
+        writer.writerow([student['username'], student['name'], status, checkin_time])
     
-    csv_content = '\n'.join(csv_lines)
+    csv_content = output.getvalue()
+    output.close()
     
-    from flask import Response
     return Response(
         csv_content,
         mimetype='text/csv',

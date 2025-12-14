@@ -73,7 +73,11 @@ def init_db():
             'INSERT INTO users (username, password, name, role) VALUES (?, ?, ?, ?)',
             ('admin', admin_password, 'Administrator', 'admin')
         )
-        print('Admin user created: username=admin, password=admin')
+        import os
+        if os.environ.get('FLASK_DEBUG', 'True') == 'True':
+            print('Admin user created: username=admin, password=admin')
+        else:
+            print('Admin user created successfully')
     
     conn.commit()
     conn.close()
