@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}管理员面板 - 学生签到系统{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>管理员面板</h2>
+    
+    <div class="stats-cards">
+        <div class="stat-card">
+            <h3>总签到任务</h3>
+            <p class="stat-number">{{ tasks|length }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>进行中</h3>
+            <p class="stat-number">{{ tasks|selectattr('is_active')|list|length }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>已结束</h3>
+            <p class="stat-number">{{ tasks|rejectattr('is_active')|list|length }}</p>
+        </div>
+    </div>
+
+    <div class="quick-actions">
+        <a href="{{ url_for('create_task') }}" class="btn btn-primary btn-large">
+            <span class="icon">+</span>
+            创建签到任务
+        </a>
+    </div>
+
+    <h3>签到任务列表</h3>
+    <div class="table-container">
+        {% if tasks %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>任务名称</th>
+                        <th>签到码</th>
+                        <th>开始时间</th>
+                        <th>结束时间</th>
+                        <th>状态</th>
+                        <th>签到人数</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr>
+                        <td>{{ task.title }}</td>
+                        <td><code class="code-badge">{{ task.code }}</code></td>
+                        <td>{{ task.start_time }}</td>
+                        <td>{{ task.end_time }}</td>
+                        <td>
+                            {% if task.is_active %}
+                                <span class="badge badge-success">进行中</span>
+                            {% else %}
+                                <span class="badge badge-secondary">已结束</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ task.checkin_count }}</td>
+                        <td>
+                            <a href="{{ url_for('view_records', task_id=task.id) }}" class="btn btn-small">查看详情</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty-message">暂无签到任务，<a href="{{ url_for('create_task') }}">创建第一个签到任务</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

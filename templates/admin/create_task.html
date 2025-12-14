@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}创建签到任务 - 学生签到系统{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-box">
+        <h2>创建签到任务</h2>
+        
+        <form method="POST" action="{{ url_for('create_task') }}">
+            <div class="form-group">
+                <label for="title">任务名称</label>
+                <input type="text" id="title" name="title" required autofocus 
+                       placeholder="例如：第一周课程签到">
+            </div>
+            
+            <div class="form-group">
+                <label for="start_time">开始时间</label>
+                <input type="datetime-local" id="start_time" name="start_time" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="end_time">结束时间</label>
+                <input type="datetime-local" id="end_time" name="end_time" required>
+            </div>
+            
+            <div class="form-info">
+                <p><strong>提示：</strong></p>
+                <ul>
+                    <li>系统将自动生成唯一的签到码</li>
+                    <li>学生需要在规定时间内使用签到码完成签到</li>
+                    <li>创建后请及时将签到码告知学生</li>
+                </ul>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">创建任务</button>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

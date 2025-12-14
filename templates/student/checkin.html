@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}签到 - 学生签到系统{% endblock %}
+
+{% block content %}
+<div class="checkin-container">
+    <div class="checkin-box">
+        <h2>签到</h2>
+        <p class="checkin-instruction">请输入老师提供的签到码完成签到</p>
+        
+        <form method="POST" action="{{ url_for('student_checkin') }}">
+            <div class="form-group">
+                <label for="code">签到码</label>
+                <input type="text" id="code" name="code" required autofocus 
+                       placeholder="请输入签到码" class="code-input">
+            </div>
+            <button type="submit" class="btn btn-primary btn-large">
+                <span class="icon">✓</span>
+                确认签到
+            </button>
+        </form>
+        
+        <div class="checkin-tips">
+            <h4>签到提示：</h4>
+            <ul>
+                <li>请确保在签到时间范围内进行签到</li>
+                <li>每个签到任务只能签到一次</li>
+                <li>签到码由老师提供，请不要泄露给他人</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
