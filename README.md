@@ -40,22 +40,23 @@ cd new-checkin
 pip install -r requirements.txt
 ```
 
-3. Initialize the database:
+3. Run the application:
 ```bash
+# Simple method - auto-initializes database if needed
+python run.py
+
+# Or manually initialize and run
 python database.py
+python app.py
 ```
 
-4. Run the application:
+For production deployment:
 ```bash
-# For development (debug mode enabled)
-python app.py
-
-# For production (disable debug mode)
 export FLASK_DEBUG=False
-python app.py
+python run.py
 ```
 
-5. Open your browser and navigate to:
+4. Open your browser and navigate to:
 ```
 http://localhost:5000
 ```
