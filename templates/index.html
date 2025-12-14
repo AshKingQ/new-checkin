@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Check-in System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Student Check-in System</h1>
+            <p>Welcome! Please select your role to continue.</p>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <h3>Administrator</h3>
+                <p>Manage check-in sessions and view records</p>
+                <a href="/admin/login"><button class="btn">Admin Login</button></a>
+            </div>
+            
+            <div class="card">
+                <h3>Student</h3>
+                <p>Register, login and check in to sessions</p>
+                <a href="/student/login"><button class="btn btn-secondary">Student Login</button></a>
+                <a href="/student/register" style="display: block; margin-top: 10px;"><button class="btn btn-success">Register</button></a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

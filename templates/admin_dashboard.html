@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Student Check-in System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard-nav">
+            <h2>Admin Dashboard</h2>
+            <button onclick="logout()" class="btn btn-danger">Logout</button>
+        </div>
+        
+        <div id="message" class="message hidden"></div>
+        
+        <div class="form-section">
+            <h3>Create New Check-in Session</h3>
+            <form id="createSessionForm">
+                <div class="form-group">
+                    <label for="title">Session Title</label>
+                    <input type="text" id="title" name="title" required placeholder="e.g., Monday Morning Class">
+                </div>
+                
+                <div class="form-group">
+                    <label for="duration">Duration (minutes)</label>
+                    <input type="number" id="duration" name="duration" value="60" min="1" required>
+                </div>
+                
+                <button type="submit" class="btn">Create Session</button>
+            </form>
+        </div>
+        
+        <div class="sessions-list">
+            <h3>Active Sessions</h3>
+            <div id="sessionsList"></div>
+        </div>
+    </div>
+    
+    <!-- Modal for viewing session records -->
+    <div id="recordsModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Session Records</h2>
+            <div id="recordsContent"></div>
+        </div>
+    </div>
+    
+    <script>
+        let currentSessionId = null;
+        
+        async function loadSessions() {
+            try {
+                const response = await fetch('/api/admin/sessions');
+                const sessions = await response.json();
+                
+                const sessionsList = document.getElementById('sessionsList');
+                
+                if (sessions.length === 0) {
+                    sessionsList.innerHTML = '<div class="empty-state">No sessions created yet.</div>';
+                    return;
+                }
+                
+                sessionsList.innerHTML = sessions.map(session => {
+                    const startTime = new Date(session.start_time);
+                    const endTime = new Date(session.end_time);
+                    const now = new Date();
+                    
+                    let status = 'expired';
+                    let statusText = 'Expired';
+                    if (now < startTime) {
+                        status = 'upcoming';
+                        statusText = 'Upcoming';
+                    } else if (now >= startTime && now <= endTime) {
+                        status = 'active';
+                        statusText = 'Active';
+                    }
+                    
+                    return `
+                        <div class="session-item">
+                            <h3>${session.title} <span class="status ${status}">${statusText}</span></h3>
+                            <p><strong>Check-in Code:</strong> <span class="session-code">${session.checkin_code}</span></p>
+                            <p><strong>Start Time:</strong> ${startTime.toLocaleString()}</p>
+                            <p><strong>End Time:</strong> ${endTime.toLocaleString()}</p>
+                            <button onclick="viewRecords(${session.id})" class="btn btn-secondary" style="margin-top: 10px; width: auto;">View Records</button>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+            }
+        }
+        
+        async function viewRecords(sessionId) {
+            currentSessionId = sessionId;
+            
+            try {
+                const response = await fetch(`/api/admin/sessions/${sessionId}/records`);
+                const data = await response.json();
+                
+                document.getElementById('modalTitle').textContent = `Records: ${data.session.title}`;
+                
+                let content = '<div class="records-tabs">';
+                content += '<button class="tab-btn active" onclick="showTab(\'checked\')">Checked In</button>';
+                content += '<button class="tab-btn" onclick="showTab(\'missed\')">Missed</button>';
+                content += '</div>';
+                
+                content += '<div id="checkedTab">';
+                if (data.checked_in.length === 0) {
+                    content += '<div class="empty-state">No students have checked in yet.</div>';
+                } else {
+                    content += '<table class="records-table"><thead><tr><th>Name</th><th>Student ID</th><th>Check-in Time</th></tr></thead><tbody>';
+                    data.checked_in.forEach(record => {
+                        const checkinTime = new Date(record.checkin_time);
+                        content += `<tr><td>${record.name}</td><td>${record.student_id}</td><td>${checkinTime.toLocaleString()}</td></tr>`;
+                    });
+                    content += '</tbody></table>';
+                }
+                content += '</div>';
+                
+                content += '<div id="missedTab" class="hidden">';
+                if (data.missed.length === 0) {
+                    content += '<div class="empty-state">All students have checked in!</div>';
+                } else {
+                    content += '<table class="records-table"><thead><tr><th>Name</th><th>Student ID</th></tr></thead><tbody>';
+                    data.missed.forEach(student => {
+                        content += `<tr><td>${student.name}</td><td>${student.student_id}</td></tr>`;
+                    });
+                    content += '</tbody></table>';
+                }
+                content += '</div>';
+                
+                document.getElementById('recordsContent').innerHTML = content;
+                document.getElementById('recordsModal').classList.add('active');
+            } catch (error) {
+                console.error('Error loading records:', error);
+            }
+        }
+        
+        function showTab(tab) {
+            const checkedTab = document.getElementById('checkedTab');
+            const missedTab = document.getElementById('missedTab');
+            const tabs = document.querySelectorAll('.tab-btn');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            if (tab === 'checked') {
+                checkedTab.classList.remove('hidden');
+                missedTab.classList.add('hidden');
+                tabs[0].classList.add('active');
+            } else {
+                checkedTab.classList.add('hidden');
+                missedTab.classList.remove('hidden');
+                tabs[1].classList.add('active');
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('recordsModal').classList.remove('active');
+        }
+        
+        document.getElementById('createSessionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('title').value;
+            const duration = document.getElementById('duration').value;
+            const messageDiv = document.getElementById('message');
+            
+            try {
+                const response = await fetch('/api/admin/sessions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title, duration_minutes: duration })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.className = 'message success';
+                    messageDiv.textContent = `Session created! Check-in code: ${data.checkin_code}`;
+                    messageDiv.classList.remove('hidden');
+                    document.getElementById('createSessionForm').reset();
+                    loadSessions();
+                } else {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = data.error || 'Failed to create session';
+                    messageDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                messageDiv.className = 'message error';
+                messageDiv.textContent = 'An error occurred. Please try again.';
+                messageDiv.classList.remove('hidden');
+            }
+        });
+        
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/';
+            } catch (error) {
+                console.error('Error logging out:', error);
+            }
+        }
+        
+        // Load sessions on page load
+        loadSessions();
+        
+        // Refresh sessions every 30 seconds
+        setInterval(loadSessions, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Student Check-in System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard-nav">
+            <h2>Student Dashboard</h2>
+            <button onclick="logout()" class="btn btn-danger">Logout</button>
+        </div>
+        
+        <div id="message" class="message hidden"></div>
+        
+        <div class="form-section">
+            <h3>Check In to Session</h3>
+            <form id="checkinForm">
+                <div class="form-group">
+                    <label for="checkin_code">Enter Check-in Code</label>
+                    <input type="text" id="checkin_code" name="checkin_code" required placeholder="e.g., ABC123" style="text-transform: uppercase;">
+                </div>
+                
+                <button type="submit" class="btn">Check In</button>
+            </form>
+        </div>
+        
+        <div class="sessions-list">
+            <h3>My Check-in History</h3>
+            <div id="historyList"></div>
+        </div>
+    </div>
+    
+    <script>
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/student/history');
+                const history = await response.json();
+                
+                const historyList = document.getElementById('historyList');
+                
+                if (history.length === 0) {
+                    historyList.innerHTML = '<div class="empty-state">No check-in history yet. Use the form above to check in!</div>';
+                    return;
+                }
+                
+                historyList.innerHTML = history.map(record => {
+                    const checkinTime = new Date(record.checkin_time);
+                    const startTime = new Date(record.start_time);
+                    const endTime = new Date(record.end_time);
+                    
+                    return `
+                        <div class="session-item">
+                            <h3>${record.title}</h3>
+                            <p><strong>Session Time:</strong> ${startTime.toLocaleString()} - ${endTime.toLocaleString()}</p>
+                            <p><strong>Check-in Time:</strong> ${checkinTime.toLocaleString()}</p>
+                            <span class="status active">Completed</span>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading history:', error);
+            }
+        }
+        
+        document.getElementById('checkinForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const checkin_code = document.getElementById('checkin_code').value.toUpperCase();
+            const messageDiv = document.getElementById('message');
+            
+            try {
+                const response = await fetch('/api/student/checkin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ checkin_code })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.className = 'message success';
+                    messageDiv.textContent = `Success! You have checked in to: ${data.session_title}`;
+                    messageDiv.classList.remove('hidden');
+                    document.getElementById('checkinForm').reset();
+                    loadHistory();
+                } else {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = data.error || 'Check-in failed';
+                    messageDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                messageDiv.className = 'message error';
+                messageDiv.textContent = 'An error occurred. Please try again.';
+                messageDiv.classList.remove('hidden');
+            }
+        });
+        
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/';
+            } catch (error) {
+                console.error('Error logging out:', error);
+            }
+        }
+        
+        // Load history on page load
+        loadHistory();
+        
+        // Refresh history every 30 seconds
+        setInterval(loadHistory, 30000);
+    </script>
+</body>
+</html>
