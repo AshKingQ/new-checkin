@@ -47,6 +47,11 @@ python database.py
 
 4. Run the application:
 ```bash
+# For development (debug mode enabled)
+python app.py
+
+# For production (disable debug mode)
+export FLASK_DEBUG=False
 python app.py
 ```
 
@@ -54,6 +59,8 @@ python app.py
 ```
 http://localhost:5000
 ```
+
+**Note:** For production deployment, use a WSGI server like Gunicorn or uWSGI instead of the Flask development server, and ensure `FLASK_DEBUG=False` is set.
 
 ## Usage
 
