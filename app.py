@@ -318,6 +318,5 @@ def api_student_history():
 if __name__ == '__main__':
     # WARNING: Debug mode is enabled for development purposes only.
     # Set debug=False in production to prevent security vulnerabilities.
-    import os
     debug_mode = os.environ.get('FLASK_DEBUG', 'True').lower() == 'true'
     app.run(debug=debug_mode, host='0.0.0.0', port=5000)
