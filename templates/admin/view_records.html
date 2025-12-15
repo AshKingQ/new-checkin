@@ -37,39 +37,83 @@
             <span class="icon">↓</span>
             导出签到记录
         </a>
+        <a href="{{ url_for('view_seats', task_id=task.id) }}" class="btn btn-primary">
+            <span class="icon">🪑</span>
+            查看座位图
+        </a>
     </div>
 
     <h3>学生签到状态</h3>
     <div class="table-container">
-        {% if student_status %}
+        {% if records %}
             <table class="data-table">
                 <thead>
                     <tr>
                         <th>学号</th>
                         <th>姓名</th>
-                        <th>签到状态</th>
                         <th>签到时间</th>
+                        <th>座位</th>
+                        <th>位置信息</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for student in student_status %}
-                    <tr class="{% if not student.checked_in %}row-warning{% endif %}">
-                        <td>{{ student.username }}</td>
-                        <td>{{ student.name }}</td>
+                    {% for record in records %}
+                    <tr>
+                        <td>{{ record.username }}</td>
+                        <td>{{ record.name }}</td>
+                        <td>{{ record.checkin_time }}</td>
                         <td>
-                            {% if student.checked_in %}
-                                <span class="badge badge-success">已签到</span>
+                            {% if record.seat_row and record.seat_col %}
+                                <span class="badge badge-primary">{{ record.seat_row }}{{ record.seat_col }}</span>
                             {% else %}
-                                <span class="badge badge-danger">未签到</span>
+                                <span style="color: #7f8c8d;">-</span>
                             {% endif %}
                         </td>
-                        <td>{{ student.checkin_time if student.checkin_time else '-' }}</td>
+                        <td>
+                            {% if record.latitude and record.longitude %}
+                                <a href="https://www.google.com/maps?q={{ record.latitude }},{{ record.longitude }}" 
+                                   target="_blank" 
+                                   title="在地图上查看"
+                                   style="color: #3498db; text-decoration: none;">
+                                    📍 {{ "%.6f"|format(record.latitude) }}, {{ "%.6f"|format(record.longitude) }}
+                                </a>
+                                {% if record.location_accuracy %}
+                                <br><small style="color: #7f8c8d;">精度: {{ "%.0f"|format(record.location_accuracy) }}米</small>
+                                {% endif %}
+                            {% else %}
+                                <span style="color: #7f8c8d;">未获取</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+            
+            <h3 style="margin-top: 2rem;">未签到学生</h3>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>学号</th>
+                            <th>姓名</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in student_status %}
+                            {% if not student.checked_in %}
+                            <tr class="row-warning">
+                                <td>{{ student.username }}</td>
+                                <td>{{ student.name }}</td>
+                                <td><span class="badge badge-danger">未签到</span></td>
+                            </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         {% else %}
-            <p class="empty-message">暂无学生数据</p>
+            <p class="empty-message">暂无签到数据</p>
         {% endif %}
     </div>
 </div>

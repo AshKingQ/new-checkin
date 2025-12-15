@@ -58,11 +58,65 @@ def init_db():
             task_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
             checkin_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            latitude REAL,
+            longitude REAL,
+            location_accuracy REAL,
+            location_time TEXT,
+            seat_row TEXT,
+            seat_col INTEGER,
             FOREIGN KEY (task_id) REFERENCES checkin_tasks(id),
             FOREIGN KEY (user_id) REFERENCES users(id),
             UNIQUE(task_id, user_id)
         )
     ''')
+    
+    # Migrate existing checkin_records table if needed
+    try:
+        # Check if location columns exist
+        cursor.execute("PRAGMA table_info(checkin_records)")
+        columns = [col[1] for col in cursor.fetchall()]
+        
+        if 'latitude' not in columns:
+            # Need to migrate - SQLite doesn't support ALTER TABLE ADD COLUMN with all constraints
+            # So we need to recreate the table
+            print('Migrating checkin_records table to add new columns...')
+            
+            # Create temporary table with new schema
+            cursor.execute('''
+                CREATE TABLE checkin_records_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    checkin_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    latitude REAL,
+                    longitude REAL,
+                    location_accuracy REAL,
+                    location_time TEXT,
+                    seat_row TEXT,
+                    seat_col INTEGER,
+                    FOREIGN KEY (task_id) REFERENCES checkin_tasks(id),
+                    FOREIGN KEY (user_id) REFERENCES users(id),
+                    UNIQUE(task_id, user_id)
+                )
+            ''')
+            
+            # Copy existing data
+            cursor.execute('''
+                INSERT INTO checkin_records_new (id, task_id, user_id, checkin_time)
+                SELECT id, task_id, user_id, checkin_time FROM checkin_records
+            ''')
+            
+            # Drop old table and rename new one
+            cursor.execute('DROP TABLE checkin_records')
+            cursor.execute('ALTER TABLE checkin_records_new RENAME TO checkin_records')
+            
+            print('Migration completed successfully!')
+    except sqlite3.Error as e:
+        print(f'Migration error: {e}')
+        # Re-raise to let caller know about critical migration failures
+        raise
+    except Exception as e:
+        print(f'Unexpected error during migration: {e}')
     
     # Check if admin user exists
     cursor.execute('SELECT id FROM users WHERE username = ?', ('admin',))
@@ -152,13 +206,19 @@ def get_checkin_task_by_code(code):
     return task
 
 
-def create_checkin_record(task_id, user_id):
-    """Create a checkin record"""
+def create_checkin_record(task_id, user_id, latitude=None, longitude=None, 
+                          location_accuracy=None, location_time=None, 
+                          seat_row=None, seat_col=None):
+    """Create a checkin record with optional location and seat information"""
     conn = get_db_connection()
     try:
         conn.execute(
-            'INSERT INTO checkin_records (task_id, user_id) VALUES (?, ?)',
-            (task_id, user_id)
+            '''INSERT INTO checkin_records 
+               (task_id, user_id, latitude, longitude, location_accuracy, 
+                location_time, seat_row, seat_col) 
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+            (task_id, user_id, latitude, longitude, location_accuracy, 
+             location_time, seat_row, seat_col)
         )
         conn.commit()
         conn.close()
@@ -291,6 +351,20 @@ def get_overall_stats():
         'overall_rate': overall_rate,
         'absent_students': [dict(row) for row in absent_rows]
     }
+
+
+def get_occupied_seats(task_id):
+    """Get all occupied seats for a specific task
+    Returns a list of dicts with seat_row, seat_col, and user info"""
+    conn = get_db_connection()
+    seats = conn.execute('''
+        SELECT cr.seat_row, cr.seat_col, u.name, u.username
+        FROM checkin_records cr
+        JOIN users u ON cr.user_id = u.id
+        WHERE cr.task_id = ? AND cr.seat_row IS NOT NULL AND cr.seat_col IS NOT NULL
+    ''', (task_id,)).fetchall()
+    conn.close()
+    return [dict(seat) for seat in seats]
 
 
 def bulk_create_users(users_data):

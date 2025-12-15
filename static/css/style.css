@@ -541,6 +541,215 @@ button[type="submit"] {
     margin: 0;
 }
 
+/* Seat Selection */
+.checkin-step {
+    margin-bottom: 2rem;
+}
+
+.location-info {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.location-info h4 {
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.status-message {
+    color: #3498db;
+    font-weight: 500;
+}
+
+.location-display p {
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+}
+
+.seat-selection {
+    margin-bottom: 1.5rem;
+}
+
+.seat-selection h4 {
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.seat-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+    max-width: 500px;
+    margin: 0 auto 1rem;
+}
+
+.seat {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.seat.available {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.seat.available:hover {
+    background-color: #27ae60;
+    transform: scale(1.05);
+}
+
+.seat.occupied {
+    background-color: #e74c3c;
+    color: white;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.seat.selected {
+    background-color: #3498db;
+    border-color: #2c3e50;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.selected-seat-info {
+    text-align: center;
+    padding: 1rem;
+    background-color: #e8f4f8;
+    border-radius: 4px;
+    color: #2c3e50;
+    margin-top: 1rem;
+}
+
+.selected-seat-info strong {
+    color: #3498db;
+    font-size: 1.25rem;
+}
+
+/* View Seats Page */
+.seats-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.seats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.seats-header h2 {
+    color: #2c3e50;
+}
+
+.classroom-layout {
+    margin-top: 2rem;
+}
+
+.classroom-title {
+    text-align: center;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+    font-size: 1.25rem;
+}
+
+.teacher-desk {
+    background-color: #95a5a6;
+    color: white;
+    text-align: center;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    font-weight: 600;
+}
+
+.seat-grid-admin {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 10px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.seat-admin {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    padding: 0.5rem;
+    border: 2px solid #ddd;
+    background-color: #ecf0f1;
+    text-align: center;
+    overflow: hidden;
+}
+
+.seat-admin.occupied {
+    background-color: #3498db;
+    color: white;
+    border-color: #2980b9;
+}
+
+.seat-label {
+    font-weight: bold;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.student-name {
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 2rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.legend-color {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    border: 2px solid #ddd;
+}
+
+.legend-color.empty {
+    background-color: #ecf0f1;
+}
+
+.legend-color.filled {
+    background-color: #3498db;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .navbar .container {
@@ -571,6 +780,29 @@ button[type="submit"] {
     }
     
     .records-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .seat-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+    }
+    
+    .seat-grid-admin {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }
+    
+    .seat {
+        font-size: 0.75rem;
+    }
+    
+    .seat-admin {
+        font-size: 0.65rem;
+    }
+    
+    .legend {
         flex-direction: column;
         gap: 1rem;
     }
