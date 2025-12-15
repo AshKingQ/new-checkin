@@ -153,7 +153,7 @@ function handleLocationError(error) {
 // Load occupied seats
 function loadOccupiedSeats() {
     const code = document.getElementById('code').value;
-    fetch(`/api/occupied_seats/{{ task.id }}?code=${code}`)
+    fetch(`/api/occupied_seats/{{ task.id }}?code=${encodeURIComponent(code)}`)
         .then(response => response.json())
         .then(data => {
             occupiedSeats = data;

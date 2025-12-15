@@ -180,16 +180,19 @@ def student_checkin():
             flash('您已经签到过了', 'warning')
             return redirect(url_for('student_dashboard'))
         
-        # Validate seat selection
+        # If no seat selected yet, show step 2 (seat selection and location)
         if not seat_row or not seat_col:
-            flash('请选择座位', 'danger')
             return render_template('student/checkin.html', task=task)
         
-        # Convert location data to proper types
-        lat = float(latitude) if latitude else None
-        lng = float(longitude) if longitude else None
-        acc = float(location_accuracy) if location_accuracy else None
-        seat_col_int = int(seat_col) if seat_col else None
+        # Convert location data to proper types with error handling
+        try:
+            lat = float(latitude) if latitude else None
+            lng = float(longitude) if longitude else None
+            acc = float(location_accuracy) if location_accuracy else None
+            seat_col_int = int(seat_col) if seat_col else None
+        except (ValueError, TypeError):
+            flash('位置或座位数据格式错误', 'danger')
+            return render_template('student/checkin.html', task=task)
         
         if create_checkin_record(task['id'], session['user_id'], 
                                 lat, lng, acc, location_time, 

@@ -111,8 +111,12 @@ def init_db():
             cursor.execute('ALTER TABLE checkin_records_new RENAME TO checkin_records')
             
             print('Migration completed successfully!')
+    except sqlite3.Error as e:
+        print(f'Migration error: {e}')
+        # Re-raise to let caller know about critical migration failures
+        raise
     except Exception as e:
-        print(f'Migration check/execution note: {e}')
+        print(f'Unexpected error during migration: {e}')
     
     # Check if admin user exists
     cursor.execute('SELECT id FROM users WHERE username = ?', ('admin',))
