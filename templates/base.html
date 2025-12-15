@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}学生签到系统{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <h1>学生签到系统</h1>
+            </div>
+            <div class="nav-links">
+                {% if session.user_id %}
+                    <span class="user-info">欢迎，{{ session.name }}</span>
+                    {% if session.role == 'admin' %}
+                        <a href="{{ url_for('admin_dashboard') }}">管理面板</a>
+                        <a href="{{ url_for('create_task') }}">创建签到任务</a>
+                    {% else %}
+                        <a href="{{ url_for('student_dashboard') }}">我的签到</a>
+                        <a href="{{ url_for('student_checkin') }}">签到</a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}" class="logout-btn">退出</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}">登录</a>
+                    <a href="{{ url_for('register') }}">注册</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 学生签到系统. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

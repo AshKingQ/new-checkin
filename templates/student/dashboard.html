@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}学生主页 - 学生签到系统{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>我的签到</h2>
+    
+    <div class="stats-cards">
+        <div class="stat-card">
+            <h3>总签到任务</h3>
+            <p class="stat-number">{{ tasks|length }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>已签到</h3>
+            <p class="stat-number">{{ tasks|selectattr('has_checked_in')|list|length }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>未签到</h3>
+            <p class="stat-number">{{ tasks|rejectattr('has_checked_in')|list|length }}</p>
+        </div>
+    </div>
+
+    <div class="quick-actions">
+        <a href="{{ url_for('student_checkin') }}" class="btn btn-primary btn-large">
+            <span class="icon">✓</span>
+            开始签到
+        </a>
+    </div>
+
+    <h3>签到任务列表</h3>
+    <div class="table-container">
+        {% if tasks %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>任务名称</th>
+                        <th>开始时间</th>
+                        <th>结束时间</th>
+                        <th>状态</th>
+                        <th>签到状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr>
+                        <td>{{ task.title }}</td>
+                        <td>{{ task.start_time }}</td>
+                        <td>{{ task.end_time }}</td>
+                        <td>
+                            {% if task.is_active %}
+                                <span class="badge badge-success">进行中</span>
+                            {% else %}
+                                <span class="badge badge-secondary">已结束</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if task.has_checked_in %}
+                                <span class="badge badge-primary">已签到</span>
+                            {% else %}
+                                <span class="badge badge-warning">未签到</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty-message">暂无签到任务</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}签到记录 - 学生签到系统{% endblock %}
+
+{% block content %}
+<div class="records-container">
+    <div class="records-header">
+        <h2>签到记录详情</h2>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">返回</a>
+    </div>
+    
+    <div class="task-info">
+        <div class="info-row">
+            <span class="info-label">任务名称：</span>
+            <span class="info-value">{{ task.title }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">签到码：</span>
+            <span class="info-value"><code class="code-badge">{{ task.code }}</code></span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">开始时间：</span>
+            <span class="info-value">{{ task.start_time }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">结束时间：</span>
+            <span class="info-value">{{ task.end_time }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">签到人数：</span>
+            <span class="info-value">{{ records|length }} / {{ student_status|length }}</span>
+        </div>
+    </div>
+
+    <div class="actions-bar">
+        <a href="{{ url_for('export_records', task_id=task.id) }}" class="btn btn-primary">
+            <span class="icon">↓</span>
+            导出签到记录
+        </a>
+    </div>
+
+    <h3>学生签到状态</h3>
+    <div class="table-container">
+        {% if student_status %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>学号</th>
+                        <th>姓名</th>
+                        <th>签到状态</th>
+                        <th>签到时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in student_status %}
+                    <tr class="{% if not student.checked_in %}row-warning{% endif %}">
+                        <td>{{ student.username }}</td>
+                        <td>{{ student.name }}</td>
+                        <td>
+                            {% if student.checked_in %}
+                                <span class="badge badge-success">已签到</span>
+                            {% else %}
+                                <span class="badge badge-danger">未签到</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ student.checkin_time if student.checkin_time else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty-message">暂无学生数据</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
