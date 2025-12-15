@@ -351,18 +351,25 @@ def import_students():
             flash('只支持 CSV 格式文件', 'danger')
             return redirect(request.url)
         
-        # Check file size (5MB limit)
-        file.seek(0, os.SEEK_END)
-        file_size = file.tell()
-        file.seek(0)
-        
-        if file_size > 5 * 1024 * 1024:
-            flash('文件大小不能超过 5MB', 'danger')
-            return redirect(request.url)
-        
         try:
-            # Read CSV file
-            stream = io.StringIO(file.stream.read().decode('utf-8-sig'), newline=None)
+            # Check file size (5MB limit) - read in chunks to avoid memory issues
+            max_size = 5 * 1024 * 1024
+            file_size = 0
+            chunk_size = 4096
+            file_content = b''
+            
+            while True:
+                chunk = file.stream.read(chunk_size)
+                if not chunk:
+                    break
+                file_size += len(chunk)
+                if file_size > max_size:
+                    flash('文件大小不能超过 5MB', 'danger')
+                    return redirect(request.url)
+                file_content += chunk
+            
+            # Decode CSV file
+            stream = io.StringIO(file_content.decode('utf-8-sig'), newline=None)
             csv_reader = csv.reader(stream)
             
             # Skip header row

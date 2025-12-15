@@ -237,12 +237,12 @@ def get_task_attendance_stats():
     
     # Get tasks with their check-in counts
     rows = conn.execute('''
-        SELECT t.id, t.title, t.start_time, t.end_time,
+        SELECT t.id, t.title, t.start_time, t.end_time, t.created_at,
                COUNT(cr.id) as checkin_count,
                CAST(COUNT(cr.id) AS FLOAT) / NULLIF(?, 0) * 100 as checkin_rate
         FROM checkin_tasks t
         LEFT JOIN checkin_records cr ON t.id = cr.task_id
-        GROUP BY t.id, t.title, t.start_time, t.end_time
+        GROUP BY t.id, t.title, t.start_time, t.end_time, t.created_at
         ORDER BY t.created_at DESC
     ''', (total_students,)).fetchall()
     
