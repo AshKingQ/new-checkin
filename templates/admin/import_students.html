@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}批量导入学生 - 学生签到系统{% endblock %}
+
+{% block content %}
+<div class="import-students">
+    <h2>批量导入学生</h2>
+    
+    <div class="info-card">
+        <h3>使用说明</h3>
+        <ol>
+            <li>下载 CSV 模板文件</li>
+            <li>按照模板格式填写学生信息（学号、姓名、初始密码）</li>
+            <li>保存为 CSV 格式（UTF-8 编码）</li>
+            <li>上传文件进行批量导入</li>
+        </ol>
+        
+        <div class="template-section">
+            <h4>CSV 文件格式示例：</h4>
+            <pre class="csv-example">学号,姓名,初始密码
+20210001,张三,123456
+20210002,李四,123456
+20210003,王五,123456</pre>
+            <a href="{{ url_for('download_template') }}" class="btn btn-secondary">
+                <span class="icon">⬇</span> 下载 CSV 模板
+            </a>
+        </div>
+        
+        <div class="notes">
+            <h4>注意事项：</h4>
+            <ul>
+                <li>文件大小不能超过 5MB</li>
+                <li>只支持 CSV 格式（.csv）</li>
+                <li>已存在的学号将被跳过，不会覆盖</li>
+                <li>密码将自动加密存储</li>
+                <li>首行为表头，将自动跳过</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="upload-card">
+        <h3>上传文件</h3>
+        <form method="POST" enctype="multipart/form-data" class="upload-form">
+            <div class="form-group">
+                <label for="file">选择 CSV 文件：</label>
+                <input type="file" id="file" name="file" accept=".csv" required class="file-input">
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <span class="icon">⬆</span> 开始导入
+                </button>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.import-students {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+.info-card,
+.upload-card {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.info-card h3,
+.upload-card h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #4CAF50;
+    padding-bottom: 10px;
+}
+
+.info-card h4 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    color: #555;
+}
+
+.info-card ol,
+.info-card ul {
+    padding-left: 25px;
+    line-height: 1.8;
+}
+
+.info-card ol li,
+.info-card ul li {
+    margin-bottom: 8px;
+}
+
+.template-section {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.csv-example {
+    background: #2d2d2d;
+    color: #f8f8f2;
+    padding: 15px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    line-height: 1.6;
+    margin: 15px 0;
+}
+
+.notes {
+    margin-top: 20px;
+    padding: 15px;
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    border-radius: 4px;
+}
+
+.notes h4 {
+    margin-top: 0;
+    color: #856404;
+}
+
+.notes ul {
+    margin-bottom: 0;
+    color: #856404;
+}
+
+.upload-form {
+    margin-top: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #333;
+}
+
+.file-input {
+    width: 100%;
+    padding: 10px;
+    border: 2px dashed #ccc;
+    border-radius: 4px;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.file-input:hover {
+    border-color: #4CAF50;
+    background: #f0f8ff;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 30px;
+}
+
+.icon {
+    margin-right: 5px;
+}
+
+@media (max-width: 768px) {
+    .import-students {
+        padding: 10px;
+    }
+    
+    .info-card,
+    .upload-card {
+        padding: 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}
