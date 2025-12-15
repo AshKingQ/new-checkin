@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, Response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, Response, jsonify
 from datetime import datetime
 import secrets
 import os
@@ -11,7 +11,7 @@ from database import (
     create_checkin_task, get_all_checkin_tasks, get_checkin_task_by_id,
     get_checkin_task_by_code, create_checkin_record, get_checkin_records_by_task,
     has_checked_in, get_all_students, get_student_attendance_stats,
-    get_task_attendance_stats, get_overall_stats, bulk_create_users
+    get_task_attendance_stats, get_overall_stats, bulk_create_users, get_occupied_seats
 )
 from models import User, CheckinTask
 
@@ -155,6 +155,12 @@ def student_checkin():
     
     if request.method == 'POST':
         code = request.form.get('code', '').strip()
+        latitude = request.form.get('latitude')
+        longitude = request.form.get('longitude')
+        location_accuracy = request.form.get('location_accuracy')
+        location_time = request.form.get('location_time')
+        seat_row = request.form.get('seat_row', '').strip()
+        seat_col = request.form.get('seat_col', '').strip()
         
         if not code:
             flash('请输入签到码', 'danger')
@@ -174,8 +180,23 @@ def student_checkin():
             flash('您已经签到过了', 'warning')
             return redirect(url_for('student_dashboard'))
         
-        if create_checkin_record(task['id'], session['user_id']):
-            flash(f'签到成功：{task["title"]}', 'success')
+        # Validate seat selection
+        if not seat_row or not seat_col:
+            flash('请选择座位', 'danger')
+            return render_template('student/checkin.html', task=task)
+        
+        # Convert location data to proper types
+        lat = float(latitude) if latitude else None
+        lng = float(longitude) if longitude else None
+        acc = float(location_accuracy) if location_accuracy else None
+        seat_col_int = int(seat_col) if seat_col else None
+        
+        if create_checkin_record(task['id'], session['user_id'], 
+                                lat, lng, acc, location_time, 
+                                seat_row, seat_col_int):
+            location_msg = f"（位置：{lat:.6f}, {lng:.6f}）" if lat and lng else ""
+            seat_msg = f"（座位：{seat_row}{seat_col}）" if seat_row and seat_col else ""
+            flash(f'签到成功：{task["title"]} {location_msg} {seat_msg}', 'success')
             return redirect(url_for('student_dashboard'))
         else:
             flash('签到失败，请重试', 'danger')
@@ -292,18 +313,26 @@ def export_records(task_id):
     # Create a set of checked-in user IDs
     checked_in_ids = {record['user_id'] for record in records}
     
-    # Create a map of user_id to checkin_time
-    checkin_times = {record['user_id']: record['checkin_time'] for record in records}
+    # Create a map of user_id to record data
+    record_map = {record['user_id']: record for record in records}
     
     # Generate CSV content using csv module for proper escaping
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['学号', '姓名', '签到状态', '签到时间'])
+    writer.writerow(['学号', '姓名', '签到状态', '签到时间', '座位', '纬度', '经度', '定位精度(米)'])
     
     for student in students:
         status = '已签到' if student['id'] in checked_in_ids else '未签到'
-        checkin_time = checkin_times.get(student['id'], '')
-        writer.writerow([student['username'], student['name'], status, checkin_time])
+        record = record_map.get(student['id'])
+        
+        checkin_time = record['checkin_time'] if record else ''
+        seat = f"{record['seat_row']}{record['seat_col']}" if record and record['seat_row'] and record['seat_col'] else ''
+        latitude = f"{record['latitude']:.6f}" if record and record['latitude'] else ''
+        longitude = f"{record['longitude']:.6f}" if record and record['longitude'] else ''
+        accuracy = f"{record['location_accuracy']:.0f}" if record and record['location_accuracy'] else ''
+        
+        writer.writerow([student['username'], student['name'], status, checkin_time, 
+                        seat, latitude, longitude, accuracy])
     
     csv_content = output.getvalue()
     output.close()
@@ -435,6 +464,56 @@ def download_template():
         mimetype='text/csv',
         headers={'Content-Disposition': 'attachment; filename=student_import_template.csv'}
     )
+
+
+@app.route('/api/occupied_seats/<int:task_id>')
+@login_required
+def api_occupied_seats(task_id):
+    """API endpoint to get occupied seats for a task"""
+    if session.get('role') == 'admin':
+        # Admin can see all occupied seats
+        occupied = get_occupied_seats(task_id)
+    else:
+        # Students can only see occupied seats (without names)
+        task = get_checkin_task_by_code(request.args.get('code', ''))
+        if not task or task['id'] != task_id:
+            return jsonify({'error': 'Invalid task'}), 403
+        occupied = get_occupied_seats(task_id)
+        # Remove names for students (privacy)
+        occupied = [{'seat_row': s['seat_row'], 'seat_col': s['seat_col']} for s in occupied]
+    
+    return jsonify(occupied)
+
+
+@app.route('/admin/view_seats/<int:task_id>')
+@admin_required
+def view_seats(task_id):
+    """View classroom seat layout for a task"""
+    task = get_checkin_task_by_id(task_id)
+    if not task:
+        flash('签到任务不存在', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    
+    occupied_seats = get_occupied_seats(task_id)
+    
+    # Create seat grid (6 rows x 8 columns)
+    rows = ['A', 'B', 'C', 'D', 'E', 'F']
+    cols = list(range(1, 9))
+    
+    # Create a map of seat position to student info
+    seat_map = {}
+    for seat in occupied_seats:
+        key = f"{seat['seat_row']}{seat['seat_col']}"
+        seat_map[key] = {
+            'name': seat['name'],
+            'username': seat['username']
+        }
+    
+    return render_template('admin/view_seats.html', 
+                         task=task, 
+                         rows=rows, 
+                         cols=cols, 
+                         seat_map=seat_map)
 
 
 if __name__ == '__main__':
