@@ -202,3 +202,130 @@ def get_all_students():
     ).fetchall()
     conn.close()
     return students
+
+
+def get_student_attendance_stats():
+    """Get attendance statistics for all students"""
+    conn = get_db_connection()
+    
+    # Get total number of tasks
+    total_tasks = conn.execute('SELECT COUNT(*) as count FROM checkin_tasks').fetchone()['count']
+    
+    # Get students with their check-in counts
+    rows = conn.execute('''
+        SELECT u.id, u.username, u.name,
+               COUNT(cr.id) as checkin_count,
+               CAST(COUNT(cr.id) AS FLOAT) / NULLIF(?, 0) * 100 as attendance_rate
+        FROM users u
+        LEFT JOIN checkin_records cr ON u.id = cr.user_id
+        WHERE u.role = ?
+        GROUP BY u.id, u.username, u.name
+        ORDER BY checkin_count DESC
+    ''', (total_tasks, 'student')).fetchall()
+    
+    conn.close()
+    # Convert Row objects to dictionaries
+    return [dict(row) for row in rows]
+
+
+def get_task_attendance_stats():
+    """Get check-in statistics for all tasks"""
+    conn = get_db_connection()
+    
+    # Get total number of students
+    total_students = conn.execute('SELECT COUNT(*) as count FROM users WHERE role = ?', ('student',)).fetchone()['count']
+    
+    # Get tasks with their check-in counts
+    rows = conn.execute('''
+        SELECT t.id, t.title, t.start_time, t.end_time, t.created_at,
+               COUNT(cr.id) as checkin_count,
+               CAST(COUNT(cr.id) AS FLOAT) / NULLIF(?, 0) * 100 as checkin_rate
+        FROM checkin_tasks t
+        LEFT JOIN checkin_records cr ON t.id = cr.task_id
+        GROUP BY t.id, t.title, t.start_time, t.end_time, t.created_at
+        ORDER BY t.created_at DESC
+    ''', (total_students,)).fetchall()
+    
+    conn.close()
+    # Convert Row objects to dictionaries
+    return [dict(row) for row in rows]
+
+
+def get_overall_stats():
+    """Get overall statistics"""
+    conn = get_db_connection()
+    
+    # Total students
+    total_students = conn.execute('SELECT COUNT(*) as count FROM users WHERE role = ?', ('student',)).fetchone()['count']
+    
+    # Total tasks
+    total_tasks = conn.execute('SELECT COUNT(*) as count FROM checkin_tasks').fetchone()['count']
+    
+    # Total check-ins
+    total_checkins = conn.execute('SELECT COUNT(*) as count FROM checkin_records').fetchone()['count']
+    
+    # Calculate overall attendance rate
+    total_possible = total_students * total_tasks
+    overall_rate = (total_checkins / total_possible * 100) if total_possible > 0 else 0
+    
+    # Get top absent students (most missed check-ins)
+    absent_rows = conn.execute('''
+        SELECT u.id, u.username, u.name,
+               (? - COUNT(cr.id)) as absent_count
+        FROM users u
+        LEFT JOIN checkin_records cr ON u.id = cr.user_id
+        WHERE u.role = ?
+        GROUP BY u.id, u.username, u.name
+        HAVING absent_count > 0
+        ORDER BY absent_count DESC
+        LIMIT 10
+    ''', (total_tasks, 'student')).fetchall()
+    
+    conn.close()
+    
+    return {
+        'total_students': total_students,
+        'total_tasks': total_tasks,
+        'total_checkins': total_checkins,
+        'total_possible': total_possible,
+        'overall_rate': overall_rate,
+        'absent_students': [dict(row) for row in absent_rows]
+    }
+
+
+def bulk_create_users(users_data):
+    """Bulk create users from a list of tuples (username, password, name)
+    Returns a dict with success_count, skip_count, and errors list"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    success_count = 0
+    skip_count = 0
+    errors = []
+    
+    for username, password, name in users_data:
+        try:
+            # Check if user already exists
+            existing = cursor.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
+            if existing:
+                skip_count += 1
+                continue
+            
+            # Hash password and insert
+            hashed_pw = hash_password(password)
+            cursor.execute(
+                'INSERT INTO users (username, password, name, role) VALUES (?, ?, ?, ?)',
+                (username, hashed_pw, name, 'student')
+            )
+            success_count += 1
+        except Exception as e:
+            errors.append(f'学号 {username}: {str(e)}')
+    
+    conn.commit()
+    conn.close()
+    
+    return {
+        'success_count': success_count,
+        'skip_count': skip_count,
+        'errors': errors
+    }

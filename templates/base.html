@@ -18,6 +18,8 @@
                     {% if session.role == 'admin' %}
                         <a href="{{ url_for('admin_dashboard') }}">管理面板</a>
                         <a href="{{ url_for('create_task') }}">创建签到任务</a>
+                        <a href="{{ url_for('statistics') }}">统计分析</a>
+                        <a href="{{ url_for('import_students') }}">导入学生</a>
                     {% else %}
                         <a href="{{ url_for('student_dashboard') }}">我的签到</a>
                         <a href="{{ url_for('student_checkin') }}">签到</a>

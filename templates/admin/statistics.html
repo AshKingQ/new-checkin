@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}出勤率统计 - 学生签到系统{% endblock %}
+
+{% block content %}
+<div class="statistics">
+    <h2>出勤率统计与分析</h2>
+    
+    <!-- Overall Statistics Cards -->
+    <div class="stats-cards">
+        <div class="stat-card">
+            <h3>总学生数</h3>
+            <p class="stat-number">{{ overall_stats.total_students }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>总签到任务</h3>
+            <p class="stat-number">{{ overall_stats.total_tasks }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>签到总次数</h3>
+            <p class="stat-number">{{ overall_stats.total_checkins }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>整体出勤率</h3>
+            <p class="stat-number">{{ "%.2f"|format(overall_stats.overall_rate) }}%</p>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-section">
+        <!-- Task Attendance Bar Chart -->
+        <div class="chart-container">
+            <h3>各签到任务签到人数统计</h3>
+            <canvas id="taskBarChart"></canvas>
+        </div>
+
+        <!-- Overall Pie Chart -->
+        <div class="chart-container">
+            <h3>整体签到比例</h3>
+            <canvas id="overallPieChart"></canvas>
+        </div>
+
+        <!-- Task Attendance Rate Line Chart -->
+        <div class="chart-container">
+            <h3>签到率趋势</h3>
+            <canvas id="taskLineChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Absent Students Ranking -->
+    <div class="absent-ranking">
+        <h3>缺勤排行（前10名）</h3>
+        {% if overall_stats.absent_students %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>排名</th>
+                        <th>学号</th>
+                        <th>姓名</th>
+                        <th>缺勤次数</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in overall_stats.absent_students %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ student.username }}</td>
+                        <td>{{ student.name }}</td>
+                        <td><span class="badge badge-danger">{{ student.absent_count }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty-message">暂无缺勤记录</p>
+        {% endif %}
+    </div>
+
+    <!-- Student Attendance Details -->
+    <div class="student-stats">
+        <h3>学生个人出勤统计</h3>
+        {% if student_stats %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>学号</th>
+                        <th>姓名</th>
+                        <th>签到次数</th>
+                        <th>出勤率</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in student_stats %}
+                    <tr>
+                        <td>{{ student.username }}</td>
+                        <td>{{ student.name }}</td>
+                        <td>{{ student.checkin_count }} / {{ overall_stats.total_tasks }}</td>
+                        <td>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ student.attendance_rate or 0 }}%"></div>
+                                <span class="progress-text">{{ "%.2f"|format(student.attendance_rate or 0) }}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty-message">暂无学生数据</p>
+        {% endif %}
+    </div>
+
+    <!-- Task Statistics Details -->
+    <div class="task-stats">
+        <h3>签到任务统计</h3>
+        {% if task_stats %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>任务名称</th>
+                        <th>开始时间</th>
+                        <th>结束时间</th>
+                        <th>签到人数</th>
+                        <th>签到率</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in task_stats %}
+                    <tr>
+                        <td>{{ task.title }}</td>
+                        <td>{{ task.start_time }}</td>
+                        <td>{{ task.end_time }}</td>
+                        <td>{{ task.checkin_count }} / {{ overall_stats.total_students }}</td>
+                        <td>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ task.checkin_rate or 0 }}%"></div>
+                                <span class="progress-text">{{ "%.2f"|format(task.checkin_rate or 0) }}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty-message">暂无签到任务数据</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Chart.js Library -->
+<!-- Note: Using CDN for Chart.js. For production, consider hosting locally or adding SRI hash -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Charts JavaScript -->
+<script>
+// Prepare data for charts
+const taskData = {{ task_stats|tojson }};
+const overallStats = {{ overall_stats|tojson }};
+
+// Bar Chart - Task Check-in Counts
+const taskBarCtx = document.getElementById('taskBarChart').getContext('2d');
+new Chart(taskBarCtx, {
+    type: 'bar',
+    data: {
+        labels: taskData.map(t => t.title),
+        datasets: [{
+            label: '签到人数',
+            data: taskData.map(t => t.checkin_count),
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+// Pie Chart - Overall Check-in Ratio
+const overallPieCtx = document.getElementById('overallPieChart').getContext('2d');
+const checkedIn = overallStats.total_checkins;
+const notCheckedIn = overallStats.total_possible - overallStats.total_checkins;
+new Chart(overallPieCtx, {
+    type: 'pie',
+    data: {
+        labels: ['已签到', '未签到'],
+        datasets: [{
+            data: [checkedIn, notCheckedIn],
+            backgroundColor: [
+                'rgba(75, 192, 192, 0.6)',
+                'rgba(255, 99, 132, 0.6)'
+            ],
+            borderColor: [
+                'rgba(75, 192, 192, 1)',
+                'rgba(255, 99, 132, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Line Chart - Check-in Rate Trend
+const taskLineCtx = document.getElementById('taskLineChart').getContext('2d');
+new Chart(taskLineCtx, {
+    type: 'line',
+    data: {
+        labels: taskData.map((t, i) => `任务${i + 1}`),
+        datasets: [{
+            label: '签到率 (%)',
+            data: taskData.map(t => (t.checkin_rate || 0).toFixed(2)),
+            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            borderColor: 'rgba(153, 102, 255, 1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    callback: function(value) {
+                        return value + '%';
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+
+<style>
+.statistics {
+    padding: 20px 0;
+}
+
+.charts-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 30px;
+    margin: 30px 0;
+}
+
+.chart-container {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.chart-container h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.chart-container canvas {
+    max-height: 300px;
+}
+
+.absent-ranking,
+.student-stats,
+.task-stats {
+    margin: 30px 0;
+}
+
+.progress-bar {
+    position: relative;
+    width: 100%;
+    height: 30px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: bold;
+    color: #333;
+    font-size: 0.9em;
+}
+
+@media (max-width: 768px) {
+    .charts-section {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

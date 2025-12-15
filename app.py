@@ -10,7 +10,8 @@ from database import (
     init_db, get_user_by_username, create_user, verify_password,
     create_checkin_task, get_all_checkin_tasks, get_checkin_task_by_id,
     get_checkin_task_by_code, create_checkin_record, get_checkin_records_by_task,
-    has_checked_in, get_all_students
+    has_checked_in, get_all_students, get_student_attendance_stats,
+    get_task_attendance_stats, get_overall_stats, bulk_create_users
 )
 from models import User, CheckinTask
 
@@ -311,6 +312,128 @@ def export_records(task_id):
         csv_content,
         mimetype='text/csv',
         headers={'Content-Disposition': f'attachment; filename=checkin_{task_id}.csv'}
+    )
+
+
+@app.route('/admin/statistics')
+@admin_required
+def statistics():
+    """Statistics page"""
+    student_stats = get_student_attendance_stats()
+    task_stats = get_task_attendance_stats()
+    overall_stats = get_overall_stats()
+    
+    return render_template('admin/statistics.html', 
+                         student_stats=student_stats,
+                         task_stats=task_stats,
+                         overall_stats=overall_stats)
+
+
+@app.route('/admin/import_students', methods=['GET', 'POST'])
+@admin_required
+def import_students():
+    """Import students from CSV file"""
+    if request.method == 'POST':
+        # Check if file was uploaded
+        if 'file' not in request.files:
+            flash('请选择文件', 'danger')
+            return redirect(request.url)
+        
+        file = request.files['file']
+        
+        # Check if filename is empty
+        if file.filename == '':
+            flash('请选择文件', 'danger')
+            return redirect(request.url)
+        
+        # Check file extension
+        if not file.filename.endswith('.csv'):
+            flash('只支持 CSV 格式文件', 'danger')
+            return redirect(request.url)
+        
+        try:
+            # Check file size (5MB limit) - read in chunks to avoid memory issues
+            max_size = 5 * 1024 * 1024
+            file_size = 0
+            chunk_size = 4096
+            file_content = b''
+            
+            while True:
+                chunk = file.stream.read(chunk_size)
+                if not chunk:
+                    break
+                file_size += len(chunk)
+                if file_size > max_size:
+                    flash('文件大小不能超过 5MB', 'danger')
+                    return redirect(request.url)
+                file_content += chunk
+            
+            # Decode CSV file
+            stream = io.StringIO(file_content.decode('utf-8-sig'), newline=None)
+            csv_reader = csv.reader(stream)
+            
+            # Skip header row
+            header = next(csv_reader, None)
+            if not header:
+                flash('CSV 文件为空', 'danger')
+                return redirect(request.url)
+            
+            # Parse student data
+            users_data = []
+            for row in csv_reader:
+                if len(row) >= 3:
+                    username = row[0].strip()
+                    name = row[1].strip()
+                    password = row[2].strip()
+                    
+                    if username and name and password:
+                        users_data.append((username, password, name))
+            
+            if not users_data:
+                flash('没有有效的学生数据', 'danger')
+                return redirect(request.url)
+            
+            # Bulk create users
+            result = bulk_create_users(users_data)
+            
+            # Show results
+            if result['success_count'] > 0:
+                flash(f'成功导入 {result["success_count"]} 个学生', 'success')
+            
+            if result['skip_count'] > 0:
+                flash(f'跳过 {result["skip_count"]} 个已存在的学号', 'warning')
+            
+            if result['errors']:
+                for error in result['errors']:
+                    flash(error, 'danger')
+            
+            return redirect(url_for('import_students'))
+            
+        except Exception as e:
+            flash(f'导入失败：{str(e)}', 'danger')
+            return redirect(request.url)
+    
+    return render_template('admin/import_students.html')
+
+
+@app.route('/admin/download_template')
+@admin_required
+def download_template():
+    """Download CSV template for student import"""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['学号', '姓名', '初始密码'])
+    writer.writerow(['20210001', '张三', '123456'])
+    writer.writerow(['20210002', '李四', '123456'])
+    writer.writerow(['20210003', '王五', '123456'])
+    
+    csv_content = output.getvalue()
+    output.close()
+    
+    return Response(
+        csv_content,
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=student_import_template.csv'}
     )
 
 
