@@ -212,7 +212,7 @@ def get_student_attendance_stats():
     total_tasks = conn.execute('SELECT COUNT(*) as count FROM checkin_tasks').fetchone()['count']
     
     # Get students with their check-in counts
-    stats = conn.execute('''
+    rows = conn.execute('''
         SELECT u.id, u.username, u.name,
                COUNT(cr.id) as checkin_count,
                CAST(COUNT(cr.id) AS FLOAT) / NULLIF(?, 0) * 100 as attendance_rate
@@ -224,7 +224,8 @@ def get_student_attendance_stats():
     ''', (total_tasks, 'student')).fetchall()
     
     conn.close()
-    return stats
+    # Convert Row objects to dictionaries
+    return [dict(row) for row in rows]
 
 
 def get_task_attendance_stats():
@@ -235,7 +236,7 @@ def get_task_attendance_stats():
     total_students = conn.execute('SELECT COUNT(*) as count FROM users WHERE role = ?', ('student',)).fetchone()['count']
     
     # Get tasks with their check-in counts
-    stats = conn.execute('''
+    rows = conn.execute('''
         SELECT t.id, t.title, t.start_time, t.end_time,
                COUNT(cr.id) as checkin_count,
                CAST(COUNT(cr.id) AS FLOAT) / NULLIF(?, 0) * 100 as checkin_rate
@@ -246,7 +247,8 @@ def get_task_attendance_stats():
     ''', (total_students,)).fetchall()
     
     conn.close()
-    return stats
+    # Convert Row objects to dictionaries
+    return [dict(row) for row in rows]
 
 
 def get_overall_stats():
@@ -267,7 +269,7 @@ def get_overall_stats():
     overall_rate = (total_checkins / total_possible * 100) if total_possible > 0 else 0
     
     # Get top absent students (most missed check-ins)
-    absent_students = conn.execute('''
+    absent_rows = conn.execute('''
         SELECT u.id, u.username, u.name,
                (? - COUNT(cr.id)) as absent_count
         FROM users u
@@ -287,7 +289,7 @@ def get_overall_stats():
         'total_checkins': total_checkins,
         'total_possible': total_possible,
         'overall_rate': overall_rate,
-        'absent_students': absent_students
+        'absent_students': [dict(row) for row in absent_rows]
     }
 
 
