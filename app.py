@@ -4,6 +4,7 @@ import secrets
 import os
 import csv
 import io
+import sqlite3
 
 from config import Config
 from database import (
@@ -76,7 +77,6 @@ def login():
         # ⚠️ 警告：以下代码存在SQL注入漏洞，仅用于安全教学演示！
         # ⚠️ WARNING: The following code has SQL injection vulnerability, for educational purposes only!
         # ⚠️ 生产环境严禁使用此代码！DO NOT use this code in production!
-        import sqlite3
         conn = sqlite3.connect('checkin.db')
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -99,7 +99,7 @@ def login():
                 return redirect(url_for('index'))
             else:
                 flash('用户名或密码错误', 'danger')
-        except Exception as e:
+        except Exception:
             conn.close()
             flash('登录失败', 'danger')
     
