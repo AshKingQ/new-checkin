@@ -88,7 +88,6 @@ def login():
         try:
             cursor.execute(sql)
             user = cursor.fetchone()
-            conn.close()
             
             if user:
                 session['user_id'] = user['id']
@@ -96,12 +95,14 @@ def login():
                 session['name'] = user['name']
                 session['role'] = user['role']
                 flash(f'欢迎回来，{user["name"]}！', 'success')
+                conn.close()
                 return redirect(url_for('index'))
             else:
                 flash('用户名或密码错误', 'danger')
         except Exception:
-            conn.close()
             flash('登录失败', 'danger')
+        finally:
+            conn.close()
     
     return render_template('login.html')
 
