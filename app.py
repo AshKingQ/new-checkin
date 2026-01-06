@@ -4,6 +4,7 @@ import secrets
 import os
 import csv
 import io
+import sqlite3
 
 from config import Config
 from database import (
@@ -73,16 +74,35 @@ def login():
             flash('请填写完整信息', 'danger')
             return render_template('login.html')
         
-        user = get_user_by_username(username)
-        if user and verify_password(password, user['password']):
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['name'] = user['name']
-            session['role'] = user['role']
-            flash(f'欢迎回来，{user["name"]}！', 'success')
-            return redirect(url_for('index'))
-        else:
-            flash('用户名或密码错误', 'danger')
+        # ⚠️ 警告：以下代码存在SQL注入漏洞，仅用于安全教学演示！
+        # ⚠️ WARNING: The following code has SQL injection vulnerability, for educational purposes only!
+        # ⚠️ 生产环境严禁使用此代码！DO NOT use this code in production!
+        conn = sqlite3.connect('checkin.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # 直接拼接SQL语句，存在SQL注入漏洞
+        # Direct string concatenation creates SQL injection vulnerability
+        sql = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"
+        
+        try:
+            cursor.execute(sql)
+            user = cursor.fetchone()
+            
+            if user:
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                session['name'] = user['name']
+                session['role'] = user['role']
+                flash(f'欢迎回来，{user["name"]}！', 'success')
+                conn.close()
+                return redirect(url_for('index'))
+            else:
+                flash('用户名或密码错误', 'danger')
+        except Exception:
+            flash('登录失败', 'danger')
+        finally:
+            conn.close()
     
     return render_template('login.html')
 
