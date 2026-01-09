@@ -64,11 +64,19 @@ class CheckinTask:
 
 class CheckinRecord:
     """Checkin record model"""
-    def __init__(self, id, task_id, user_id, checkin_time):
+    def __init__(self, id, task_id, user_id, checkin_time, 
+                 latitude=None, longitude=None, location_accuracy=None, 
+                 location_time=None, seat_row=None, seat_col=None):
         self.id = id
         self.task_id = task_id
         self.user_id = user_id
         self.checkin_time = checkin_time
+        self.latitude = latitude
+        self.longitude = longitude
+        self.location_accuracy = location_accuracy
+        self.location_time = location_time
+        self.seat_row = seat_row
+        self.seat_col = seat_col
     
     @staticmethod
     def from_row(row):
@@ -79,5 +87,21 @@ class CheckinRecord:
             row['id'],
             row['task_id'],
             row['user_id'],
-            row['checkin_time']
+            row['checkin_time'],
+            row.get('latitude'),
+            row.get('longitude'),
+            row.get('location_accuracy'),
+            row.get('location_time'),
+            row.get('seat_row'),
+            row.get('seat_col')
         )
+    
+    def get_seat_label(self):
+        """Get formatted seat label (e.g., 'A1')"""
+        if self.seat_row and self.seat_col:
+            return f"{self.seat_row}{self.seat_col}"
+        return None
+    
+    def has_location(self):
+        """Check if record has location data"""
+        return self.latitude is not None and self.longitude is not None

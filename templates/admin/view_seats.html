@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}座位图 - 学生签到系统{% endblock %}
+
+{% block content %}
+<div class="seats-container">
+    <div class="seats-header">
+        <h2>教室座位图</h2>
+        <a href="{{ url_for('view_records', task_id=task.id) }}" class="btn btn-secondary">返回签到记录</a>
+    </div>
+    
+    <div class="task-info">
+        <div class="info-row">
+            <span class="info-label">任务名称：</span>
+            <span class="info-value">{{ task.title }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">签到码：</span>
+            <span class="info-value"><code class="code-badge">{{ task.code }}</code></span>
+        </div>
+    </div>
+    
+    <div class="classroom-layout">
+        <div class="teacher-desk">
+            讲台 / Teacher's Desk
+        </div>
+        
+        <div class="seat-grid-admin">
+            {% for row in rows %}
+                {% for col in cols %}
+                    {% set seat_key = row ~ col %}
+                    {% set student_info = seat_map.get(seat_key) %}
+                    <div class="seat-admin {% if student_info %}occupied{% endif %}" 
+                         title="{% if student_info %}{{ student_info.name }} ({{ student_info.username }}){% else %}空座位{% endif %}">
+                        <div class="seat-label">{{ seat_key }}</div>
+                        {% if student_info %}
+                        <div class="student-name">{{ student_info.name }}</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color empty"></div>
+                <span>空座位</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color filled"></div>
+                <span>已签到</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
